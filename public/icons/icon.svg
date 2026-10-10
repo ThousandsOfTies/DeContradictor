@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="DeContradictor robot">
+  <defs>
+    <linearGradient id="back" x2="1" y2="1"><stop stop-color="#172e51"/><stop offset="1" stop-color="#101329"/></linearGradient>
+    <linearGradient id="shell" x2="1" y2="1"><stop stop-color="#e3f3ff"/><stop offset="1" stop-color="#8caec9"/></linearGradient>
+  </defs>
+  <rect width="512" height="512" rx="108" fill="url(#back)"/>
+  <circle cx="256" cy="254" r="188" fill="#bfe7f7" opacity=".13"/>
+  <path d="M174 366h164l26 78H148z" fill="#719fbd" stroke="#d0edfc" stroke-width="12"/>
+  <rect x="130" y="148" width="252" height="236" rx="90" fill="url(#shell)" stroke="#e1f6ff" stroke-width="12"/>
+  <rect x="96" y="230" width="43" height="93" rx="21" fill="#9abdd5" stroke="#d6efff" stroke-width="9"/>
+  <rect x="373" y="230" width="43" height="93" rx="21" fill="#9abdd5" stroke="#d6efff" stroke-width="9"/>
+  <rect x="152" y="182" width="208" height="157" rx="56" fill="#18304a" stroke="#4e7899" stroke-width="10"/>
+  <path d="M184 242h49m46 0h49" stroke="#7ee4f4" stroke-width="14" stroke-linecap="round"/>
+  <path d="M220 292q36 26 72 0" fill="none" stroke="#7ee4f4" stroke-width="11" stroke-linecap="round"/>
+  <circle cx="256" cy="131" r="11" fill="#7ee4f4"/>
+</svg>

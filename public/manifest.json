@@ -1,0 +1,19 @@
+{
+  "name": "DeContradictor",
+  "short_name": "DeContradictor",
+  "description": "Gemini Liveとの対話で問題・原因・解決策を整理するアプリ。",
+  "start_url": "./",
+  "display": "standalone",
+  "background_color": "#0d0d1a",
+  "theme_color": "#6c63ff",
+  "orientation": "any",
+  "lang": "ja",
+  "icons": [
+    {
+      "src": "./icons/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

@@ -21,7 +21,7 @@ npm run dev
 - 会話・フロー図のブラウザ内自動保存、JSON出力・読込
 - Googleログイン、プロフィール画像、APIキー・設定のDrive保存と会話・図のDrive同期
 
-Googleログイン設定と保存内容は [docs/live-account-and-save.md](docs/live-account-and-save.md) を参照してください。OAuthクライアントIDが未設定でも、会話とローカル保存は利用できます。
+Googleログイン設定と保存内容は [docs/live-account-and-save.md](docs/live-account-and-save.md) を参照してください。OAuthクライアントIDはソースに設定済みです。Googleログインなしでも会話とローカル保存は利用できます。
 
 ## 開発確認
 

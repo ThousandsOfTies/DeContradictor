@@ -1215,7 +1215,6 @@ input {
 .live-storage-row label { font-size: 11px; }
 .live-storage-row input { flex: 1 1 160px; min-width: 100px; }
 .live-storage-row select { max-width: 270px; min-width: 100px; }
-#live-google-client-id { flex: 1; }
 #live-workbench { min-height: 360px; }
 #live-test-inner, #live-test-inner:has(#live-test-direction-card[open]) { display: flex; flex-direction: column; overflow: hidden; }
 #live-test-direction-card { flex: 0 0 auto; max-height: 40%; overflow-y: auto; }

@@ -18,7 +18,7 @@
           <h1 id="live-page-title">Gemini Live</h1>
           <p class="live-page-subtitle">音声と構造化データの確認</p>
         </div>
-        <button id="live-open-settings-btn" type="button" aria-controls="live-storage-settings">⚙ 保存・Google設定</button>
+        <button id="live-open-settings-btn" type="button" aria-controls="live-storage-settings">⚙ 保存・Google連携</button>
       </div>
 
       <div id="live-status-block" aria-label="Live状態">
@@ -101,15 +101,14 @@
         <span id="live-save-status" role="status">会話・図はこのブラウザに自動保存します。</span>
       </div>
       <details id="live-storage-settings" open>
-        <summary>保存・読込 / Googleログイン設定（クリックで開閉）</summary>
+        <summary>保存・読込 / Google連携（クリックで開閉）</summary>
         <div class="live-storage-fields">
           <div class="live-storage-row"><label for="live-session-title">会話名</label><input id="live-session-title" value="会話" maxlength="100"><button id="live-save-local" type="button">ブラウザに保存</button><button id="live-export" type="button">JSON出力</button><button id="live-import" type="button">JSON読込</button><input id="live-import-file" type="file" accept=".json,application/json" hidden></div>
           <div class="live-storage-row"><label for="live-local-list">保存済み</label><select id="live-local-list" aria-label="ブラウザの保存済み会話"></select><button id="live-load-local" type="button">読込</button><button id="live-save-drive" type="button">Drive同期を開始</button><button id="live-list-drive" type="button">Drive一覧</button><select id="live-drive-list" aria-label="Driveの保存済み会話"><option value="">Drive一覧を取得してください</option></select><button id="live-load-drive" type="button">Driveから読込</button></div>
           <p>会話・図はまずブラウザに自動保存します。「Drive同期を開始」後は同じDriveファイルへ自動更新します。別端末で同時更新された場合は停止します。音声・APIキーは会話ファイルに含めません。読込は表示の復元で、Geminiの会話記憶は再開しません。</p>
-          <div class="live-storage-row"><label for="live-google-client-id">OAuthクライアントID</label><input id="live-google-client-id" placeholder="…apps.googleusercontent.com" autocomplete="off" spellcheck="false"><button id="live-google-config-save" type="button">ログイン設定を保存</button></div>
           <div class="live-storage-row"><button id="live-save-settings-drive" type="button">APIキー・設定をDriveへ保存</button><button id="live-load-settings-drive" type="button">Drive設定を読込</button><button id="live-delete-settings-drive" type="button">Drive設定を削除</button></div>
           <p>設定ファイルはDriveのアプリ専用領域に保存します。APIキーはJSON内に暗号化せず保存されます。ログイン時に保存済み設定を読み込みます。削除はDrive側だけが対象です。</p>
-          <p>Google Cloudの「ウェブアプリケーション」用IDを設定してください（APIキーとは別です）。承認済みJavaScript生成元: <code id="live-google-origin"></code>。Drive同期にはGoogle Drive APIの有効化も必要です。</p>
+          <p>Googleログイン用のOAuthクライアントIDはアプリに設定済みです（Gemini APIキーとは別です）。承認済みJavaScript生成元: <code id="live-google-origin"></code>。Drive同期にはGoogle Drive APIの有効化も必要です。</p>
         </div>
       </details>
     </section>

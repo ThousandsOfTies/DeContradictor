@@ -8,6 +8,7 @@ import { LiveGoogleAccount, validateDriveSettings } from './live-google-account.
 
 const $ = id => document.getElementById(id);
 const prefix = 'decontradictor.live.';
+const GOOGLE_OAUTH_CLIENT_ID = '171114049080-c880d878cqorg8ghs5qid5v2vmi1gvuc.apps.googleusercontent.com';
 const tell = message => { $('live-save-status').textContent = message; };
 function setting(name, fallback = '') {
   try { return localStorage.getItem(prefix + name) ?? fallback; } catch (_) { return fallback; }
@@ -214,20 +215,6 @@ async function loadCloudSettings() {
   persistKey();
   tell(settings.apiKey ? 'DriveからAPIキー・設定を読み込みました。Liveに接続できます。' : 'Driveから設定を読み込みました。APIキーは空です。');
 }
-async function configureGoogle() {
-  const clientId = $('live-google-client-id').value.trim();
-  if (!clientId) throw new Error('OAuthクライアントIDを入力してください。');
-  account?.signOut();
-  account = new LiveGoogleAccount(accountChanged, tell);
-  $('live-google-login').disabled = true;
-  await account.init(clientId);
-  remember('googleClientId', clientId);
-  $('live-google-login').disabled = false;
-  if (account.signedIn && account.hasDrive) await loadCloudSettings();
-}
-action('live-google-config-save', async () => {
-  await configureGoogle(); tell('ログイン設定を保存しました。「Googleでログイン」を押してください。');
-});
 action('live-google-login', async () => {
   requireAccount();
   await account.login({ drive: true });
@@ -235,7 +222,7 @@ action('live-google-login', async () => {
 });
 action('live-google-logout', () => { account.signOut(); tell('Googleからログアウトしました。保存済みの会話とAPIキーは残ります。'); });
 function requireAccount() {
-  if (!account?.client) throw new Error('「保存・読込 / Googleログイン設定」でOAuthクライアントIDを設定してください。');
+  if (!account?.client) throw new Error('Googleログインを準備できませんでした。画面を再読み込みしてください。');
 }
 action('live-save-drive', async () => {
   requireAccount();
@@ -304,17 +291,14 @@ async function boot() {
   } catch (_) { tell('前回の会話を読み込めませんでした。JSON出力での保存をご利用ください。'); }
   accountChanged(null);
   $('live-google-origin').textContent = location.origin;
-  $('live-google-client-id').value = setting('googleClientId', import.meta.env.VITE_GOOGLE_CLIENT_ID || '');
-  if ($('live-google-client-id').value) {
-    // 再読み込み時は有効なログインを復元する。設定変更時だけ明示的にログアウト。
-    account = new LiveGoogleAccount(accountChanged, tell);
-    try {
-      await account.init($('live-google-client-id').value);
-      $('live-google-login').disabled = false;
-      if (account.signedIn && account.hasDrive) await loadCloudSettings();
-    }
-    catch (error) { tell(error.message); }
+  // クライアントIDは公開識別子なので、ビルド時設定や画面からの入力を不要にする。
+  account = new LiveGoogleAccount(accountChanged, tell);
+  try {
+    await account.init(GOOGLE_OAUTH_CLIENT_ID);
+    $('live-google-login').disabled = false;
+    if (account.signedIn && account.hasDrive) await loadCloudSettings();
   }
+  catch (error) { tell(error.message); }
 }
 
 boot().catch(() => tell('画面の初期化に失敗しました。再読み込みしてください。'));

@@ -1,0 +1,22 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>会話開始・再開のローカル検証（模擬応答）</title>
+  <style>
+    #qa-bar { padding: 12px 24px; background: #21213a; font: 13px/1.6 sans-serif; }
+    #qa-results { margin: 6px 0 0; display: flex; gap: 8px 20px; flex-wrap: wrap; list-style: none; }
+    #qa-bar + #live-page { height: calc(100dvh - 135px); min-height: 620px; }
+    #qa-bar + #live-page:has(#live-test-direction-card[open]) { height: calc(100dvh - 135px); }
+  </style>
+</head>
+<body>
+  <header id="qa-bar">
+    <strong>会話開始・再開テスト（Geminiの発話は模擬応答・音声再生なし）</strong>
+    <p>実際の画面・チャット・図・接続処理を使用。本番の保存・Google認証・API通信は行いません。</p>
+    <p id="qa-status" role="status">確認中…</p><ul id="qa-results"></ul>
+  </header>
+  <script type="module" src="./live-facilitator-ui.js"></script>
+</body>
+</html>

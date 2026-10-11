@@ -1,0 +1,20 @@
+#common-settings-dialog { box-sizing: border-box; width: min(680px, calc(100% - 28px)); max-height: calc(100dvh - 36px); padding: 26px; overflow-y: auto; border: 1px solid #555081; border-radius: 18px; background: #161628; color: #edecfa; font: 13px/1.7 'Yu Gothic UI', 'Meiryo', sans-serif; }
+#common-settings-dialog::backdrop { background: #050510bb; backdrop-filter: blur(4px); }
+#common-settings-dialog .common-heading { display: flex; justify-content: space-between; gap: 18px; align-items: center; margin-bottom: 16px; }
+#common-settings-dialog h2 { margin: 0; font-size: 23px; }
+#common-settings-dialog .common-heading p { margin: 0; color: #a09aff; font-size: 10px; letter-spacing: .14em; }
+#common-settings-dialog .common-note { margin: 8px 0; color: #aaa8c4; font-size: 12px; }
+#common-settings-dialog .common-field { display: grid; gap: 8px; margin-top: 14px; padding: 17px; border: 1px solid #383450; border-radius: 12px; background: #111122; }
+#common-settings-dialog label { color: #dddaf4; }
+#common-settings-dialog input:not([type="checkbox"]), #common-settings-dialog select, #common-settings-dialog textarea { box-sizing: border-box; width: 100%; min-width: 0; padding: 10px 12px; border: 1px solid #4e4876; border-radius: 8px; background: #1b1933; color: #f4f1ff; font: inherit; }
+#common-settings-dialog input:focus-visible, #common-settings-dialog select:focus-visible, #common-settings-dialog textarea:focus-visible, #common-settings-dialog button:focus-visible { outline: 2px solid #aaa3ff; outline-offset: 2px; }
+#common-settings-dialog button { padding: 7px 11px; border: 1px solid #555081; border-radius: 8px; background: #29254f; color: #eeeaff; cursor: pointer; font: inherit; font-size: 12px; }
+#common-settings-dialog button:hover { background: #3c3570; }
+#common-settings-dialog button:disabled, #common-settings-dialog input:disabled, #common-settings-dialog select:disabled, #common-settings-dialog textarea:disabled { opacity: .5; cursor: not-allowed; }
+#common-settings-dialog .common-key-memory, #common-settings-dialog .common-actions { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-top: 6px; }
+#common-settings-dialog .common-key-memory label, #common-settings-dialog .common-toggle { display: flex; align-items: center; gap: 8px; }
+#common-settings-dialog summary { cursor: pointer; color: #c0baf4; }
+#common-settings-dialog code { overflow-wrap: anywhere; }
+#common-settings-status:empty { display: none; }
+#common-settings-status { margin-top: 16px; color: #cec7fa; }
+@media (max-width: 600px) { #common-settings-dialog { padding: 18px; } }

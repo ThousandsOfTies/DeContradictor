@@ -10,15 +10,26 @@
 </head>
 <body>
   <main id="live-page">
-    <header id="live-compact-header" aria-label="Gemini Live設定">
+    <header id="live-compact-header" aria-label="現在の課題">
       <div id="live-brand-block">
         <span class="live-brand-mark" aria-hidden="true"></span>
         <div>
-          <p class="live-page-kicker">DECONTRADICTOR / POC</p>
-          <h1 id="live-page-title">Gemini Live</h1>
-          <p class="live-page-subtitle">音声と構造化データの確認</p>
+          <p class="live-page-kicker">DECONTRADICTOR / ISSUE</p>
+          <h1 id="live-issue-name">課題を読み込んでいます…</h1>
+          <p class="live-page-subtitle">Gemini Liveと議論・作図</p>
         </div>
-        <button id="live-open-settings-btn" type="button" aria-controls="live-storage-settings" aria-expanded="false">⚙ 保存・Google連携</button>
+        <nav class="live-header-actions" aria-label="画面操作">
+          <span id="live-issue-sync" class="live-sync-badge" role="status" data-state="local">ローカルのみ</span>
+          <a id="live-back-to-issues" href="%BASE_URL%">← 課題一覧へ</a>
+          <button id="live-open-settings-btn" type="button" aria-controls="live-settings-dialog" aria-haspopup="dialog">課題・保存</button>
+        </nav>
+      </div>
+    </header>
+
+    <dialog id="live-settings-dialog" aria-labelledby="live-settings-title">
+      <div class="live-settings-heading">
+        <div><p class="live-page-kicker">ISSUE & BACKUP</p><h2 id="live-settings-title">この課題の保存</h2></div>
+        <button id="live-close-settings-btn" type="button" aria-label="課題の保存を閉じる">×</button>
       </div>
 
       <div id="live-status-block" aria-label="Live状態">
@@ -35,83 +46,25 @@
         <span id="live-current-emotion" class="live-current-emotion" data-emotion="neutral">感情: neutral</span>
       </div>
 
-      <div class="live-test-key-card">
-        <label for="live-api-key">
-          Google AI Studio APIキー
-          <span class="live-field-hint">このブラウザで記憶したキーを読み込みます。入力したキーはLive接続にだけ使います。</span>
-        </label>
-        <input id="live-api-key" type="password" placeholder="AIza..." autocomplete="off" spellcheck="false">
-        <div class="live-key-memory"><label><input id="live-remember-key" type="checkbox" checked> このブラウザに記憶</label><button id="live-forget-key" type="button">ブラウザから削除</button></div>
-        <small><span id="live-key-memory-status">未記憶</span> · 共有PCではOFFに。APIキーはDriveには保存しません。</small>
-      </div>
-
-      <div class="live-test-voice-card">
-        <label for="live-voice-select">
-          応答音声
-          <span class="live-field-hint">性別は公式の固定属性ではないため、声質の印象による分類です。</span>
-        </label>
-        <select id="live-voice-select">
-          <optgroup label="女性系（声質の目安）">
-            <option value="Zephyr">♀ Zephyr — 明るい (Bright)</option>
-            <option value="Kore">♀ Kore — しっかり (Firm)</option>
-            <option value="Leda">♀ Leda — 若々しい (Youthful)</option>
-            <option value="Aoede">♀ Aoede — 軽やか (Breezy)</option>
-            <option value="Callirrhoe">♀ Callirrhoe — 穏やか (Easy-going)</option>
-            <option value="Autonoe">♀ Autonoe — 明るい (Bright)</option>
-            <option value="Despina">♀ Despina — なめらか (Smooth)</option>
-            <option value="Erinome">♀ Erinome — クリア (Clear)</option>
-            <option value="Laomedeia">♀ Laomedeia — 快活 (Upbeat)</option>
-            <option value="Achernar">♀ Achernar — やわらかい (Soft)</option>
-            <option value="Achird">♀ Achird — 親しみやすい (Friendly)</option>
-            <option value="Vindemiatrix">♀ Vindemiatrix — やさしい (Gentle)</option>
-            <option value="Sadachbia">♀ Sadachbia — 活発 (Lively)</option>
-            <option value="Sulafat">♀ Sulafat — あたたかい (Warm)</option>
-          </optgroup>
-          <optgroup label="男性系（声質の目安）">
-            <option value="Puck" selected>♂ Puck — 明るく元気 (Upbeat)</option>
-            <option value="Charon">♂ Charon — 情報的 (Informative)</option>
-            <option value="Fenrir">♂ Fenrir — エネルギッシュ (Excitable)</option>
-            <option value="Orus">♂ Orus — しっかり (Firm)</option>
-            <option value="Enceladus">♂ Enceladus — 息づかい (Breathy)</option>
-            <option value="Iapetus">♂ Iapetus — クリア (Clear)</option>
-            <option value="Umbriel">♂ Umbriel — 落ち着いた (Easy-going)</option>
-            <option value="Algieba">♂ Algieba — なめらか (Smooth)</option>
-            <option value="Algenib">♂ Algenib — 低くざらついた (Gravelly)</option>
-            <option value="Rasalgethi">♂ Rasalgethi — 情報的 (Informative)</option>
-            <option value="Alnilam">♂ Alnilam — しっかり (Firm)</option>
-            <option value="Gacrux">♂ Gacrux — 大人っぽい (Mature)</option>
-            <option value="Sadaltager">♂ Sadaltager — 知的 (Knowledgeable)</option>
-          </optgroup>
-          <optgroup label="中性的・個人差あり">
-            <option value="Schedar">◐ Schedar — 均一 (Even)</option>
-            <option value="Zubenelgenubi">◐ Zubenelgenubi — カジュアル (Casual)</option>
-            <option value="Pulcherrima">◐ Pulcherrima — 前向き (Forward)</option>
-          </optgroup>
-        </select>
-        <label class="live-avatar-choice" for="live-avatar-color">ロボアイコン <select id="live-avatar-color"><option value="auto">声に合わせる</option><option value="blue">青色</option><option value="pink">ピンク色</option></select></label>
-      </div>
-    </header>
-
-    <section id="live-library" aria-label="アカウントと会話保存">
+    <section id="live-library" aria-label="この課題の保存">
       <div class="live-library-bar">
         <span id="live-account-avatar"></span><span id="live-account-name">未ログイン</span>
-        <button id="live-google-login" type="button" disabled>Googleでログイン・同期</button>
-        <button id="live-google-logout" type="button" hidden>ログアウト</button>
-        <span id="live-drive-sync-state" role="status">Drive未同期</span>
-        <span id="live-save-status" role="status">会話・図はこのブラウザに自動保存します。</span>
+        <a id="live-account-top" href="%BASE_URL%">GoogleアカウントはTOPで管理</a>
+        <span id="live-drive-sync-state" class="live-sync-badge" role="status" data-state="local">ローカルのみ</span>
+        <button id="live-sync-retry" type="button" hidden>同期を再試行</button>
+        <a id="live-sync-conflict" href="%BASE_URL%" hidden>課題一覧で競合を確認</a>
+        <span id="live-save-status" role="status">この課題はブラウザに自動保存します。</span>
       </div>
-      <details id="live-storage-settings">
-        <summary>保存・読込 / Google連携（クリックで開閉）</summary>
+      <details id="live-storage-settings" open>
+        <summary>課題名・JSON出力と読込</summary>
         <div class="live-storage-fields">
-          <div class="live-storage-row"><label for="live-session-title">会話名</label><input id="live-session-title" value="会話" maxlength="100"><button id="live-save-local" type="button">ブラウザに保存</button><button id="live-export" type="button">JSON出力</button><button id="live-import" type="button">JSON読込</button><input id="live-import-file" type="file" accept=".json,application/json" hidden></div>
-          <div class="live-storage-row"><label for="live-local-list">保存済み</label><select id="live-local-list" aria-label="ブラウザの保存済み会話"></select><button id="live-load-local" type="button">読込</button><button id="live-save-drive" type="button">Drive同期を開始</button><button id="live-list-drive" type="button">Drive一覧</button><select id="live-drive-list" aria-label="Driveの保存済み会話"><option value="">Drive一覧を取得してください</option></select><button id="live-load-drive" type="button">Driveから読込</button></div>
-          <p>会話・図はまずブラウザに自動保存します。「Drive同期を開始」後は同じDriveファイルへ自動更新します。別端末で同時更新された場合は停止します。音声・APIキーは会話ファイルに含めません。読込は表示の復元で、Geminiの会話記憶は再開しません。</p>
-          <div class="live-storage-row"><button id="live-save-settings-drive" type="button">APIキー・設定をDriveへ保存</button><button id="live-load-settings-drive" type="button">Drive設定を読込</button><button id="live-delete-settings-drive" type="button">Drive設定を削除</button></div>
-          <p>設定ファイルはDriveのアプリ専用領域に保存します。APIキーはJSON内に暗号化せず保存されます。ログイン時に保存済み設定を読み込みます。削除はDrive側だけが対象です。</p>
-          <p>Googleログイン用のOAuthクライアントIDはアプリに設定済みです（Gemini APIキーとは別です）。承認済みJavaScript生成元: <code id="live-google-origin"></code>。Drive同期にはGoogle Drive APIの有効化も必要です。</p>
+          <div class="live-storage-row"><label for="live-session-title">課題名</label><input id="live-session-title" value="" maxlength="100"><button id="live-save-local" type="button">今すぐ保存</button><button id="live-export" type="button">JSON出力</button><button id="live-import" type="button">JSONから新規課題</button><input id="live-import-file" type="file" accept=".json,application/json" hidden></div>
+          <div class="live-storage-row"><button id="live-save-drive" type="button">今すぐ同期</button></div>
+          <p>会話・図はブラウザへ自動保存し、Googleログイン中はDriveにも自動登録・同期します。APIキーや声などはTOPの「共通設定」で管理します。Driveの他の課題はTOP一覧から開けます。音声・APIキーは課題ファイルに含めません。再接続時は保存した図・直近の会話をAIへ渡して振り返ります。以前のGeminiセッションそのものを復元するわけではありません。</p>
         </div>
       </details>
     </section>
+    </dialog>
 
     <div id="live-workbench">
       <section id="live-flow-card" class="live-visual-card" aria-labelledby="live-flow-title">
@@ -152,20 +105,14 @@
       <section id="live-test-panel" aria-labelledby="live-log-title">
         <div id="live-test-inner">
           <details id="live-test-direction-card" class="live-test-direction-card">
-            <summary>📝 テキスト・ディレクションテスト</summary>
+            <summary>📝 テキストで話しかける</summary>
             <div class="live-direction-fields">
-              <label for="live-direction-input">
-                接続時の会話ディレクション
-                <span class="live-field-hint">接続前に入力すると、Geminiへの基本方針として適用されます。</span>
-              </label>
-              <textarea id="live-direction-input" rows="2" maxlength="1000" placeholder="例：回答は「結論 → 理由」の順に短く話してください。不明なことは推測せず、不明と伝えてください。"></textarea>
-
               <label for="live-text-input">
                 接続後にテキストで話しかける
-                <span class="live-field-hint">音声を使わず、文字の指示に対する応答を確認できます。</span>
+                <span class="live-field-hint">困っている現象や思い当たる原因を、そのままの言葉で伝えてください。</span>
               </label>
               <div class="live-text-send-row">
-                <input id="live-text-input" type="text" maxlength="2000" placeholder="例：今日のニュースを3点、各1文で説明して" autocomplete="off">
+                <input id="live-text-input" type="text" maxlength="2000" placeholder="例：作業の手戻りが多く、納期に間に合わないことがあります" autocomplete="off">
                 <button id="live-text-send-btn" type="button" disabled>送信</button>
               </div>
             </div>
@@ -183,7 +130,7 @@
           </div>
 
           <div class="live-chat-heading"><strong>会話</strong><button id="live-chat-latest" type="button" hidden>最新へ</button></div>
-          <p id="live-chat-empty">話しかけると、感情アイコン付きで会話が表示されます。</p>
+          <p id="live-chat-empty">接続するとAIから声をかけます。新しい課題は趣旨説明から、再開は図・会話の振り返りから始まります。</p>
           <ol id="live-chat-list" aria-label="会話リスト" aria-live="polite" aria-relevant="additions text"></ol>
           <details id="live-diagnostics">
             <summary>通信ログ・構造化データ</summary>
@@ -202,6 +149,7 @@
       </section>
     </div>
   </main>
+  <div id="common-settings-root"></div>
   <script type="module" src="/src/live-main.js"></script>
 </body>
 </html>

@@ -3,10 +3,77 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta http-equiv="refresh" content="0;url=%BASE_URL%live.html">
-  <title>DeContradictor</title>
+  <meta name="theme-color" content="#0b0b16">
+  <link rel="manifest" href="%BASE_URL%manifest.json">
+  <link rel="icon" href="%BASE_URL%icons/icon.svg" type="image/svg+xml">
+  <title>課題一覧 | DeContradictor</title>
 </head>
 <body>
-  <p><a href="%BASE_URL%live.html">DeContradictorを開く</a></p>
+  <main class="home-page">
+    <header class="home-header">
+      <div class="home-header-main">
+        <div class="home-symbol" aria-hidden="true">D<span>●</span>C</div>
+        <div>
+          <p class="home-kicker">DECONTRADICTOR</p>
+          <h1>考える課題を選ぶ</h1>
+          <p class="home-description">AIとの議論で、問題・原因・解決策を図にしていきます。</p>
+        </div>
+      </div>
+      <section class="home-account" aria-label="Googleアカウント">
+        <button id="home-open-settings" type="button" aria-controls="common-settings-dialog" aria-haspopup="dialog">⚙ 共通設定</button>
+        <div class="home-account-identity"><span id="home-account-avatar"></span><span id="home-account-name">未ログイン</span></div>
+        <button id="home-google-login" type="button" disabled>Googleでログイン</button>
+        <button id="home-drive-refresh" type="button" hidden>同期・更新</button>
+        <button id="home-google-logout" type="button" hidden>ログアウト</button>
+      </section>
+    </header>
+
+    <section class="home-create" aria-labelledby="home-create-heading">
+      <div>
+        <p class="home-section-kicker">NEW ISSUE</p>
+        <h2 id="home-create-heading">新しい課題を始める</h2>
+      </div>
+      <form id="home-create-form">
+        <label for="home-title">課題名</label>
+        <div class="home-create-row">
+          <input id="home-title" type="text" maxlength="100" placeholder="例：開発の手戻りを減らすには" required autocomplete="off">
+          <button type="submit">作成して開く <span aria-hidden="true">→</span></button>
+        </div>
+      </form>
+    </section>
+
+    <section class="home-list-section" aria-labelledby="home-list-heading">
+      <div class="home-section-heading">
+        <div>
+          <p class="home-section-kicker">YOUR ISSUES</p>
+          <h2 id="home-list-heading">課題一覧 <span id="home-count"></span></h2>
+        </div>
+        <p>会話・図を課題ごとに保存</p>
+      </div>
+      <p id="home-status" role="status">課題を読み込んでいます…</p>
+      <p id="home-drive-status" role="status">Googleにログインすると、Driveの課題もこの一覧に表示します。</p>
+      <div id="home-issues" class="home-issues"></div>
+      <p class="home-drive-note">Googleログイン後は、このアカウントの課題を自動でDriveに登録・同期します。未登録のローカル課題も、最初の照合に成功するとログイン中のアカウントに登録します。両側で編集された場合は「競合」から採用する版を選べます。自動同期の停止・再開は「共通設定」から操作できます。</p>
+    </section>
+    <footer class="home-footer">APIキー・音声・会話の基本方針はTOPの「共通設定」で管理します。ロボアイコンは声に合わせて自動で切り替わります。会話・図はブラウザへ自動保存し、Googleログイン中はDriveへ自動同期します。JSON出力・読込は課題を開いて操作できます。</footer>
+  </main>
+  <div id="common-settings-root"></div>
+  <dialog id="home-conflict-dialog" aria-labelledby="home-conflict-title">
+    <h2 id="home-conflict-title">採用する版を選ぶ</h2>
+    <p id="home-conflict-description"></p>
+    <div class="home-conflict-versions"><p id="home-conflict-local"></p><p id="home-conflict-drive"></p></div>
+    <p>採用しない版は退避コピーとして残します。自動同期がONなら次回の照合で、このアカウントのDriveへ登録します。</p>
+    <p id="home-conflict-status" role="status"></p>
+    <div class="home-conflict-actions"><button id="home-use-local" type="button">ローカル版を採用</button><button id="home-use-drive" type="button">Drive版を採用</button><button id="home-conflict-close" type="button">後で決める</button></div>
+  </dialog>
+  <dialog id="home-delete-dialog" aria-labelledby="home-delete-title" aria-describedby="home-delete-description home-delete-warning">
+    <h2 id="home-delete-title">課題を削除しますか？</h2>
+    <p id="home-delete-name"></p>
+    <p id="home-delete-description"></p>
+    <p id="home-delete-warning"></p>
+    <p id="home-delete-status" role="status"></p>
+    <div class="home-delete-actions"><button id="home-delete-cancel" type="button" autofocus>キャンセル</button><button id="home-delete-confirm" class="home-delete-button" type="button">課題を削除</button></div>
+  </dialog>
+  <script type="module" src="/src/home-main.js"></script>
 </body>
 </html>

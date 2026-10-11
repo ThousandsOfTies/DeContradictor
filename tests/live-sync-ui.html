@@ -1,0 +1,20 @@
+<!doctype html>
+<html lang="ja">
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>課題同期の隔離テスト</title></head>
+<body>
+  <main class="home-page">
+    <p class="home-kicker">DECONTRADICTOR / ISOLATED TEST</p>
+    <h1>課題同期の動作確認</h1>
+    <p class="home-description">専用のテスト用IndexedDBと模擬Driveを使用。本番の課題・Google・Geminiにはアクセスしません。</p>
+    <section class="home-list-section"><h2>ブラウザでの保存検証</h2><p id="test-result" role="status">検証中…</p><ol id="test-details"></ol></section>
+    <section class="home-list-section"><div class="home-section-heading"><h2>課題一覧</h2><button id="test-refresh" type="button">模擬Driveと照合</button></div>
+      <p id="test-sync-status" role="status"></p><div id="test-issues" class="home-issues"></div>
+    </section>
+  </main>
+  <dialog id="home-conflict-dialog" aria-labelledby="home-conflict-title"><h2 id="home-conflict-title">採用する版を選ぶ</h2><p id="test-conflict-name"></p>
+    <div class="home-conflict-versions"><p id="test-local"></p><p id="test-remote"></p></div><p>採用しない版はローカルの退避コピーに残します。</p>
+    <p id="test-conflict-status" role="status"></p><div class="home-conflict-actions"><button id="test-use-local" type="button">ローカル版を採用</button><button id="test-use-drive" type="button">Drive版を採用</button><button id="test-close" type="button">後で決める</button></div>
+  </dialog>
+  <script type="module" src="./live-sync-ui.js"></script>
+</body>
+</html>

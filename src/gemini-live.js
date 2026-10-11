@@ -1,7 +1,8 @@
 import { AudioPlayer } from './audio-player.js';
 import { LIVE_EMOTIONS } from './live-emotions.js';
+import { buildIssueContext, buildFacilitatorInstruction, buildOpeningTurn } from './live-facilitator.js';
 
-// Gemini Live の確認用に限定した最小クライアント。
+// Gemini Live の音声・構造化データを受け渡す接続クライアント。
 // 会話・図・感情はLive画面側で管理する。
 const LIVE_MODEL = 'gemini-3.8-live';
 const LIVE_WS_ENDPOINT =
@@ -11,7 +12,6 @@ const INPUT_SAMPLE_RATE = 16_000;
 const OUTPUT_SAMPLE_RATE = 24_000;
 const PROCESSOR_BUFFER_SIZE = 2048;
 const MAX_LOG_ITEMS = 300;
-const LIVE_VOICE_STORAGE_KEY = 'decontradictor.live.voice';
 const LIVE_SEARCH_ENABLED = true;
 
 // Live APIから音声と一緒に受け取りたい機械可読データ。
@@ -33,8 +33,19 @@ const LIVE_FUNCTION_DECLARATIONS = [
     },
   },
   {
+    name: 'get_issue_context',
+    description: '現在の課題名・直近の会話・最新の図を読む。図の変更前とUDEの聞き出し前に使用し、人間の手編集も確認する。大きな図はnextNodeOffset/nextEdgeOffsetの続きを取得できる。',
+    parameters: {
+      type: 'object',
+      properties: {
+        nodeOffset: { type: 'integer', description: '図のノードの取得開始位置。省略時0。' },
+        edgeOffset: { type: 'integer', description: '図のエッジの取得開始位置。省略時0。' },
+      },
+    },
+  },
+  {
     name: 'update_react_flow',
-    description: '会話の主張・質問・結論・矛盾・関係が変化したときだけ、React Flowへ渡す差分を通知する。通常の雑談では呼び出さない。',
+    description: '困りごと（UDE）・原因・矛盾・解決案やそれらの関係を最新の図に差分で反映する。「図を書いて」という指示がなくても課題の話を整理してよい。仮説はラベルで区別し、get_issue_contextで既存IDを確認する。挨拶だけでは変更しない。',
     parameters: {
       type: 'object',
       properties: {
@@ -149,11 +160,17 @@ export class GeminiLiveProbe {
     llm,
     onEmotionDetected = null,
     onReactFlowUpdate = null,
+    getIssueContext = () => ({}),
   }) {
     this.llm = llm;
     this.onEmotionDetected = onEmotionDetected;
     this.onReactFlowUpdate = onReactFlowUpdate;
+    this.getIssueContext = getIssueContext;
     this.socket = null;
+    this.starting = false;
+    this.connectionGeneration = 0;
+    this.openingSent = false;
+    this.openingContext = null;
     this.mediaStream = null;
     this.inputContext = null;
     this.inputSource = null;
@@ -216,17 +233,7 @@ export class GeminiLiveProbe {
     if (this.els.apiKeyInput) {
       this.els.apiKeyInput.value = this.llm.apiKey || '';
     }
-    if (this.els.voiceSelect) {
-      try {
-        const savedVoice = localStorage.getItem(LIVE_VOICE_STORAGE_KEY);
-        if ([...this.els.voiceSelect.options].some((option) => option.value === savedVoice)) {
-          this.els.voiceSelect.value = savedVoice;
-        }
-      } catch (_) {}
-      this.els.voiceSelect.addEventListener('change', () => {
-        try { localStorage.setItem(LIVE_VOICE_STORAGE_KEY, this.els.voiceSelect.value); } catch (_) {}
-      });
-    }
+    if (this.els.voiceSelect && !this.els.voiceSelect.value) this.els.voiceSelect.value = 'Puck';
 
     this._setState('停止中');
     this._appendLog('info', `モデル: ${LIVE_MODEL}`);
@@ -236,15 +243,15 @@ export class GeminiLiveProbe {
   }
 
   async start({ textOnly = false } = {}) {
-    if (this.socket) return;
+    if (this.socket || this.starting) return;
 
     const apiKey = (this.els.apiKeyInput ? this.els.apiKeyInput.value : (this.llm.apiKey || '')).trim();
     if (!apiKey) {
       this._setState('APIキー未設定');
-      this._appendLog('error', 'この画面のAPIキー欄にGoogle AI Studioのキーを入力してください。');
+      this._appendLog('error', 'TOPの「共通設定」でGoogle AI StudioのAPIキーを入力してください。');
       return;
     }
-    // この画面で入力されたキーを、接続に反映する。
+    // TOPの共通設定から復元されたキーを、接続に反映する。
     // キーの記憶は画面側で管理する。このクライアントからDriveへ保存しない。
     this.llm.apiKey = apiKey;
     if (!textOnly && !navigator.mediaDevices?.getUserMedia) {
@@ -253,6 +260,9 @@ export class GeminiLiveProbe {
       return;
     }
 
+    const generation = ++this.connectionGeneration;
+    this.starting = true;
+    this.openingSent = false;
     this.userStopped = false;
     this.setupComplete = false;
     this.audioChunks = 0;
@@ -268,11 +278,13 @@ export class GeminiLiveProbe {
     this._setState('マイクを準備中...');
 
     try {
+      this.openingContext = buildIssueContext(this.getIssueContext());
       await this.audioPlayer.init();
+      if (generation !== this.connectionGeneration) return;
       if (textOnly) {
         this._setState('テキスト接続を準備中...');
       } else {
-        this.mediaStream = await navigator.mediaDevices.getUserMedia({
+        const mediaStream = await navigator.mediaDevices.getUserMedia({
           audio: {
             channelCount: 1,
             echoCancellation: true,
@@ -280,16 +292,24 @@ export class GeminiLiveProbe {
             autoGainControl: true,
           },
         });
-        await this._startInputPipeline();
+        if (generation !== this.connectionGeneration) {
+          mediaStream.getTracks().forEach(track => track.stop());
+          return;
+        }
+        this.mediaStream = mediaStream;
+        await this._startInputPipeline(generation);
+        if (generation !== this.connectionGeneration) return;
       }
 
       const url = `${LIVE_WS_ENDPOINT}?key=${encodeURIComponent(apiKey)}`;
       const socket = new WebSocket(url);
       this.socket = socket;
+      this.starting = false;
       this._setState('接続中...');
       this._appendLog('info', 'Gemini Liveへ接続しています。ヘッドホン推奨です。');
 
       socket.onopen = () => {
+        if (this.socket !== socket || generation !== this.connectionGeneration) return;
         this._appendLog('info', 'WebSocket接続完了。設定を送信しました。');
         socket.send(JSON.stringify({
           setup: {
@@ -317,18 +337,22 @@ export class GeminiLiveProbe {
         }));
       };
 
-      socket.onmessage = (event) => {
-        this._handleMessage(event.data);
-      };
+      socket.onmessage = (event) => this._handleMessage(event.data, socket, generation);
 
       socket.onerror = () => {
+        if (this.socket !== socket || generation !== this.connectionGeneration) return;
         this._setState('接続エラー');
         this._appendLog('error', 'WebSocket接続でエラーが発生しました。');
       };
 
       socket.onclose = (event) => {
-        if (this.socket === socket) this.socket = null;
+        if (this.socket !== socket || generation !== this.connectionGeneration) return;
+        this.socket = null;
+        this.connectionGeneration++;
+        this.openingSent = false;
         this.setupComplete = false;
+        this.audioPlayer.stopAll();
+        this._dispatchLiveEvent('gemini-live-turn-end', {});
         this._cleanupInput();
         this._setState('停止中');
         if (!this.userStopped) {
@@ -337,6 +361,7 @@ export class GeminiLiveProbe {
         this.userStopped = false;
       };
     } catch (err) {
+      if (generation !== this.connectionGeneration) return;
       await this.stop({ silent: true });
       this._setState('開始失敗');
       this._appendLog('error', err.message || String(err));
@@ -344,6 +369,10 @@ export class GeminiLiveProbe {
   }
 
   async stop({ silent = false } = {}) {
+    this.connectionGeneration++;
+    this.starting = false;
+    this.openingSent = false;
+    this.openingContext = null;
     this._dispatchLiveEvent('gemini-live-turn-end', {});
     this.userStopped = true;
     this.setupComplete = false;
@@ -360,16 +389,18 @@ export class GeminiLiveProbe {
     if (!silent) this._appendLog('info', 'Liveセッションを停止しました。');
   }
 
-  async _startInputPipeline() {
-    this.inputContext = new AudioContext({ sampleRate: INPUT_SAMPLE_RATE });
-    await this.inputContext.resume();
-    this.inputSource = this.inputContext.createMediaStreamSource(this.mediaStream);
-    this.inputProcessor = this.inputContext.createScriptProcessor(PROCESSOR_BUFFER_SIZE, 1, 1);
-    this.inputMute = this.inputContext.createGain();
+  async _startInputPipeline(generation) {
+    const inputContext = new AudioContext({ sampleRate: INPUT_SAMPLE_RATE });
+    this.inputContext = inputContext;
+    await inputContext.resume();
+    if (generation !== this.connectionGeneration) return;
+    this.inputSource = inputContext.createMediaStreamSource(this.mediaStream);
+    this.inputProcessor = inputContext.createScriptProcessor(PROCESSOR_BUFFER_SIZE, 1, 1);
+    this.inputMute = inputContext.createGain();
     this.inputMute.gain.value = 0;
 
     this.inputProcessor.onaudioprocess = (event) => {
-      if (!this.setupComplete || this.socket?.readyState !== WebSocket.OPEN) return;
+      if (generation !== this.connectionGeneration || !this.setupComplete || this.socket?.readyState !== WebSocket.OPEN) return;
       const samples = event.inputBuffer.getChannelData(0);
       const data = float32ToPcm16Base64(
         samples,
@@ -404,16 +435,19 @@ export class GeminiLiveProbe {
     }
   }
 
-  async _handleMessage(raw) {
+  async _handleMessage(raw, socket = this.socket, generation = this.connectionGeneration) {
     try {
+      if (!socket || this.socket !== socket || generation !== this.connectionGeneration) return;
       const text = typeof raw === 'string' ? raw : await raw.text();
+      if (this.socket !== socket || generation !== this.connectionGeneration) return;
       const message = JSON.parse(text);
 
       if (message.setupComplete) {
-        this.setupComplete = true;
-        this._setState('聞いています');
-        this._appendLog('info', 'Liveセッション準備完了。話しかけてください。');
-        return;
+        if (!this.setupComplete) {
+          this.setupComplete = true;
+          this._appendLog('info', 'Liveセッション準備完了。AIから最初の声かけをします。');
+          this._sendOpeningTurn();
+        }
       }
 
       if (message.error) {
@@ -468,17 +502,19 @@ export class GeminiLiveProbe {
         this._appendLog('info', `サーバーからまもなく切断されます: ${message.goAway.timeLeft}`);
       }
     } catch (err) {
+      if (this.socket !== socket || generation !== this.connectionGeneration) return;
       this._appendLog('error', `受信データの処理に失敗: ${err.message || err}`);
     }
   }
 
   _setState(text) {
+    const busy = !!this.socket || this.starting || !!this.mediaStream;
     if (this.els.status) this.els.status.textContent = text;
-    if (this.els.startBtn) this.els.startBtn.disabled = !!this.socket;
-    if (this.els.textOnlyStartBtn) this.els.textOnlyStartBtn.disabled = !!this.socket;
-    if (this.els.stopBtn) this.els.stopBtn.disabled = !this.socket && !this.mediaStream;
-    if (this.els.voiceSelect) this.els.voiceSelect.disabled = !!this.socket || !!this.mediaStream;
-    if (this.els.directionInput) this.els.directionInput.disabled = !!this.socket || !!this.mediaStream;
+    if (this.els.startBtn) this.els.startBtn.disabled = busy;
+    if (this.els.textOnlyStartBtn) this.els.textOnlyStartBtn.disabled = busy;
+    if (this.els.stopBtn) this.els.stopBtn.disabled = !busy;
+    if (this.els.voiceSelect) this.els.voiceSelect.disabled = busy;
+    if (this.els.directionInput) this.els.directionInput.disabled = busy;
     if (this.els.textInput) this.els.textInput.disabled = !this.setupComplete;
     if (this.els.textSendBtn) this.els.textSendBtn.disabled = !this.setupComplete;
   }
@@ -496,8 +532,22 @@ export class GeminiLiveProbe {
   }
 
   _buildSystemInstruction(direction) {
-    const base = '日本語で、短く自然な会話をしてください。これは音声応答の動作確認です。最新情報・現在の情報・事実確認が必要な質問にはGoogle検索を使ってから答えてください。雑談や一般的な会話では検索しなくて構いません。各ターンの応答開始時に、音声表現に合う現在の感情をchange_emotionで1回通知してください。会話の主張・質問・結論・矛盾・関係に追加や変更があるときだけ、React Flowへ渡す小さな差分をupdate_react_flowで通知してください。これらのツール呼び出しはUIへ渡す機械可読データなので、ツール名やJSONを音声で読み上げないでください。';
-    return direction ? `${base}\n\n追加の会話ディレクション:\n${direction}` : base;
+    return buildFacilitatorInstruction(direction);
+  }
+
+  _sendOpeningTurn() {
+    if (this.openingSent || !this.setupComplete || this.socket?.readyState !== WebSocket.OPEN) return;
+    const context = this.openingContext || buildIssueContext(this.getIssueContext());
+    this.socket.send(JSON.stringify({
+      clientContent: {
+        turns: [{ role: 'user', parts: [{ text: buildOpeningTurn(context) }] }],
+        turnComplete: true,
+      },
+    }));
+    this.openingSent = true;
+    this._setState(context.mode === 'new' ? 'はじめの声かけ中...' : '振り返り中...');
+    const { nodeCount, edgeCount } = context.graph;
+    this._appendLog('info', `開始の声かけ: ${context.mode === 'new' ? '初回の趣旨説明・誘導' : '再開の振り返り・次の進め方'}（会話 ${context.conversation.recentMessages.length}件 / ノード ${nodeCount}個 / エッジ ${edgeCount}本）。`);
   }
 
   _handleToolCall(toolCall) {
@@ -513,13 +563,19 @@ export class GeminiLiveProbe {
       this._appendLog('tool', `Function Calling: ${name} ${this._stringifyForLog(args)}`);
 
       let result;
-      if (name === 'change_emotion') {
-        result = this._handleEmotionData(args);
-      } else if (name === 'update_react_flow') {
-        result = this._handleReactFlowData(args);
-      } else {
-        result = { status: 'error', error: `未対応のFunction Calling: ${name}` };
-        this._appendLog('error', result.error);
+      try {
+        if (name === 'change_emotion') {
+          result = this._handleEmotionData(args);
+        } else if (name === 'get_issue_context') {
+          result = { status: 'ok', context: buildIssueContext(this.getIssueContext(), args) };
+        } else if (name === 'update_react_flow') {
+          result = this._handleReactFlowData(args);
+        } else {
+          throw new Error(`未対応のFunction Calling: ${name}`);
+        }
+      } catch (error) {
+        result = { status: 'error', accepted: false, error: error.message || String(error) };
+        this._appendLog('error', `${name}: ${result.error}`);
       }
 
       functionResponses.push({
@@ -548,7 +604,9 @@ export class GeminiLiveProbe {
   }
 
   _handleReactFlowData(args) {
-    const operations = Array.isArray(args?.operations) ? args.operations : [];
+    if (!Array.isArray(args?.operations) || !args.operations.length) throw new Error('図の差分操作がありません。');
+    if (!this.onReactFlowUpdate) throw new Error('図の更新先がありません。');
+    const operations = args.operations;
     const payload = { operations };
     this.onReactFlowUpdate?.(payload);
     this._dispatchLiveEvent('gemini-live-react-flow-update', payload);
@@ -637,11 +695,13 @@ export function initGeminiLive({
   llm,
   onEmotionDetected = null,
   onReactFlowUpdate = null,
+  getIssueContext = () => ({}),
 }) {
   const probe = new GeminiLiveProbe({
     llm,
     onEmotionDetected,
     onReactFlowUpdate,
+    getIssueContext,
   });
   probe.init();
   return probe;

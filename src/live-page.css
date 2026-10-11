@@ -1193,13 +1193,13 @@ input {
   min-height: 780px;
   gap: 10px;
 }
-.live-key-memory, .live-avatar-choice { display: flex; align-items: center; gap: 10px; }
+.live-key-memory { display: flex; align-items: center; gap: 10px; }
 #live-compact-header .live-key-memory label { display: flex; flex-direction: row; align-items: center; gap: 6px; font-size: 11px; }
 .live-key-memory input { accent-color: #9188ff; width: auto; }
 .live-test-key-card small { color: #9296b7; font-size: 10px; }
 #live-library { flex: 0 0 auto; padding: 8px 12px; border: 1px solid #2b2b4c; border-radius: 12px; background: #121225; }
 .live-library-bar, .live-storage-row { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; }
-#live-library button, #live-library input, #live-library select, #live-avatar-color,
+#live-library button, #live-library input, #live-library select,
 .live-key-memory button, #live-chat-latest {
   border: 1px solid #3b395e; border-radius: 7px; padding: 6px 9px; background: #1b1b34; color: #e9e7ff; font: inherit; font-size: 11px;
 }
@@ -1248,4 +1248,121 @@ input {
   #live-flow-card { height: 440px; flex: 0 0 440px; }
   #live-test-panel { height: 680px; flex: 0 0 680px; }
   .live-storage-row select { max-width: 100%; }
+}
+
+/* Issue workspace: only the current task and the working surfaces remain visible. */
+.live-sync-badge { display: inline-flex; align-items: center; padding: 4px 9px; border: 1px solid #44435e; border-radius: 999px; color: #b6b5d0; font-size: 11px; white-space: nowrap; }
+.live-sync-badge[data-state="synced"] { color: #8ce0b8; border-color: #365e50; background: #18382c; }
+.live-sync-badge[data-state="connecting"], .live-sync-badge[data-state="syncing"] { color: #beb6ff; border-color: #625894; background: #282243; }
+.live-sync-badge[data-state="conflict"], .live-sync-badge[data-state="error"] { color: #f1c195; border-color: #765744; background: #36281f; }
+.live-sync-badge[data-state="paused"] { color: #d2c3a5; border-color: #6b5b41; background: #30271c; }
+#live-sync-conflict { color: #f1c195; font-size: 12px; }
+#live-page, #live-page:has(#live-test-direction-card[open]) {
+  min-height: 650px;
+  height: 100dvh;
+  gap: 12px;
+}
+#live-compact-header {
+  display: block;
+  flex: 0 0 auto;
+}
+#live-brand-block {
+  min-height: 76px;
+  width: 100%;
+  padding: 10px 16px;
+}
+#live-brand-block > div:nth-child(2) { min-width: 0; flex: 1; }
+#live-issue-name {
+  color: #f5f4ff;
+  font-size: clamp(17px, 1.8vw, 24px);
+  line-height: 1.25;
+  overflow-wrap: anywhere;
+}
+#live-brand-block .live-page-subtitle { margin-top: 2px; }
+.live-header-actions { display: flex; gap: 8px; margin-left: auto; align-items: center; }
+.live-header-actions a, .live-header-actions button {
+  display: inline-flex;
+  min-height: 36px;
+  align-items: center;
+  justify-content: center;
+  padding: 7px 12px;
+  border: 1px solid #49456f;
+  border-radius: 8px;
+  background: #211f3d;
+  color: #dedafb;
+  text-decoration: none;
+  font-size: 12px;
+  white-space: nowrap;
+  cursor: pointer;
+}
+.live-header-actions a:hover, .live-header-actions button:hover { background: #35305f; border-color: #8f88ff; }
+#live-open-settings-btn { margin: 0; }
+#live-settings-dialog {
+  position: fixed;
+  inset: 0;
+  width: min(860px, calc(100% - 24px));
+  max-width: none;
+  max-height: min(90dvh, 950px);
+  margin: auto;
+  padding: 22px;
+  overflow-y: auto;
+  border: 1px solid #5a548a;
+  border-radius: 20px;
+  background: #111124;
+  color: #e7e6f4;
+  box-shadow: 0 24px 90px #000a;
+}
+#live-settings-dialog::backdrop { background: rgba(3, 3, 14, .72); backdrop-filter: blur(5px); }
+.live-settings-heading { display: flex; justify-content: space-between; align-items: start; margin-bottom: 18px; }
+.live-settings-heading h2 { font-size: 23px; }
+#live-close-settings-btn {
+  width: 34px;
+  height: 34px;
+  border: 1px solid #4a466e;
+  border-radius: 8px;
+  background: #23213e;
+  color: #eceaff;
+  cursor: pointer;
+  font-size: 20px;
+}
+#live-settings-dialog #live-status-block {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 7px;
+  margin-bottom: 12px;
+  padding: 12px;
+  background: #17162d;
+  border: 1px solid #323052;
+  border-radius: 12px;
+}
+#live-settings-dialog .live-search-status,
+#live-settings-dialog .live-data-status { margin: 0; }
+#live-settings-dialog .live-test-key-card,
+#live-settings-dialog .live-test-voice-card { margin-bottom: 12px; }
+#live-settings-dialog .live-key-memory label { flex-direction: row; align-items: center; gap: 6px; }
+#live-settings-dialog #live-library { padding: 14px; }
+#live-settings-dialog .live-storage-fields { max-height: none; overflow: visible; }
+#live-settings-dialog .live-storage-row { padding: 4px 0; }
+#live-settings-dialog .live-storage-row select { flex: 1 1 190px; }
+#live-settings-dialog #live-session-title { flex: 1 1 240px; }
+#live-test-controls { flex-wrap: wrap; }
+#live-test-controls .live-status-wrap { flex: 1 1 100%; }
+#live-test-controls button { flex: 1 1 auto; }
+@media (max-width: 1180px) {
+  #live-page, #live-page:has(#live-test-direction-card[open]) { min-height: 700px; height: auto; }
+}
+@media (max-width: 1000px) {
+  #live-page, #live-page:has(#live-test-direction-card[open]) { min-height: 100dvh; }
+  #live-workbench { display: flex; flex-direction: column; }
+  #live-flow-card { height: min(60dvh, 560px); min-height: 400px; flex: 0 0 auto; }
+  #live-test-panel { height: 650px; flex: 0 0 auto; }
+  #live-brand-block { gap: 10px; }
+  #live-test-controls .live-status-wrap { flex-basis: 100px; }
+  #live-settings-dialog { padding: 14px; }
+}
+@media (max-width: 600px) {
+  .live-header-actions { flex: 1 1 100%; margin: 0; }
+  .live-header-actions a, .live-header-actions button { flex: 1; }
 }

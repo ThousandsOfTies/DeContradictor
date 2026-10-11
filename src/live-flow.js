@@ -255,11 +255,13 @@ export class LiveFlowCanvas {
   }
 
   _setEditStatus(text) {
+    if (!this.svg) return;
     const status = document.getElementById('live-flow-edit-status');
     if (status) status.textContent = text;
   }
 
   _syncEditorUi() {
+    if (!this.svg) return;
     const deleteButton = document.getElementById('live-flow-delete-btn');
     if (deleteButton) deleteButton.disabled = !this.selection;
 

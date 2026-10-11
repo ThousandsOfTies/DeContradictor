@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { validateSession } from '../src/live-session-store.js';
+import { LiveSessionStore, validateSession } from '../src/live-session-store.js';
 import { LiveFlowCanvas } from '../src/live-flow.js';
 import { LIVE_EMOTIONS, normalizeEmotion, profileAvatar } from '../src/live-emotions.js';
 import { LiveGoogleAccount, validateDriveSettings } from '../src/live-google-account.js';
@@ -24,11 +24,12 @@ test('9 emotions and unknown fallback', () => {
 test('cleared key input must not reuse the previous session key', async () => {
   const probe = new GeminiLiveProbe({ llm: { apiKey: 'previous-test-key' } });
   probe.els.apiKeyInput = { value: '' };
-  let state;
+  let state, message;
   probe._setState = value => { state = value; };
-  probe._appendLog = () => {};
+  probe._appendLog = (kind, text) => { if (kind === 'error') message = text; };
   await probe.start({ textOnly: true });
   assert.equal(state, 'APIキー未設定');
+  assert.equal(message, 'TOPの「共通設定」でGoogle AI StudioのAPIキーを入力してください。');
   assert.equal(probe.socket, null);
 });
 test('Live function handler accepts all 9 emotions', () => {
@@ -47,6 +48,43 @@ test('snapshot whitelist excludes credentials and account identifiers', () => {
   assert.equal(output.messages[0].author.picture, 'https://lh3.googleusercontent.com/example');
   assert.deepEqual(output.messages.slice(1).map(m => m.emotion), LIVE_EMOTIONS);
   assert.deepEqual(validateSession(JSON.parse(serialized)), output);
+});
+test('legacy draft and saved versions migrate once without removing originals', async () => {
+  const records = new Map([
+    ['draft', { id: 'draft', session: fixture() }],
+    ['old-save', { id: 'old-save', session: { ...fixture(), title: '保存版' } }],
+  ]);
+  const store = new LiveSessionStore();
+  store.load = async id => records.get(id);
+  store.save = async (id, session) => { records.set(id, { id, session }); };
+  store.list = async () => [...records.values()];
+  await store.migrateLegacy();
+  assert.deepEqual((await store.listIssues()).map(issue => issue.title), ['テスト', '保存版']);
+  assert.equal((await store.loadIssue('test-issue')).graph.edges.length, 2);
+  assert.ok(records.has('draft'));
+  assert.ok(records.has('old-save'));
+  await store.migrateLegacy();
+  assert.equal((await store.listIssues()).length, 2);
+  records.set('draft', { id: 'draft', session: { ...fixture(), title: '旧画面からの更新', savedAt: '2026-10-11T01:00:00Z' } });
+  await store.migrateLegacy();
+  assert.equal((await store.loadIssue('test-issue')).title, '旧画面からの更新');
+  assert.equal((await store.listIssues()).length, 2);
+});
+test('Drive restore backs up changed local issue and does not duplicate an unchanged backup', async () => {
+  const records = new Map();
+  const store = new LiveSessionStore();
+  store.load = async id => records.get(id);
+  store.save = async (id, session) => { records.set(id, { id, session }); };
+  store.list = async () => [...records.values()];
+  await store.saveIssue(fixture());
+  const remote = { ...validateSession(fixture()), title: 'Drive版', savedAt: '2026-10-11T02:00:00Z' };
+  const restored = await store.restoreDriveIssue(remote);
+  assert.equal(restored.issueId, 'test-issue');
+  assert.ok(restored.backupId);
+  assert.equal((await store.loadIssue(restored.backupId)).title, 'テスト（Drive復元前）');
+  assert.equal((await store.loadIssue('test-issue')).title, 'Drive版');
+  assert.equal((await store.restoreDriveIssue(remote)).backupId, null);
+  assert.equal((await store.listIssues()).length, 2);
 });
 test('reject invalid snapshot before replacing current graph', () => {
   assert.throws(() => validateSession({}));
@@ -175,4 +213,84 @@ test('Drive session updates the same file and stops on remote conflict', async (
   await assert.rejects(account.save(session, first), /別の端末/);
   assert.equal(patches, 1);
   await assert.rejects(account.save(session), /同じ課題/);
+});
+
+test('Drive issue deletion uses trash PATCH, validates the exact task and sends an ETag precondition', async () => {
+  const account = new LiveGoogleAccount(() => {}, () => {});
+  account.profile = { id: 'user' }; account.token = 'token'; account.expiresAt = Date.now() + 60000; account.hasDrive = true;
+  const sync = { id: 'session-id', profileId: 'user', modifiedTime: 'v1' }, calls = [];
+  let metadata = { id: sync.id, mimeType: 'application/json', modifiedTime: 'v1', trashed: false,
+    appProperties: { application: 'decontradictor-live', issueId: 'test-task' }, capabilities: { canTrash: true } };
+  account.request = async (url, options = {}) => {
+    calls.push({ url, options });
+    if (options.method === 'PATCH') {
+      assert.deepEqual(JSON.parse(options.body), { trashed: true });
+      assert.equal(options.headers['If-Match'], 'test-etag');
+      return new Response(JSON.stringify({ id: sync.id, trashed: true }));
+    }
+    assert.ok(url.includes('appProperties'));
+    return new Response(JSON.stringify(metadata), { headers: { etag: 'test-etag' } });
+  };
+  assert.deepEqual(await account.trashIssue('test-task', sync), { id: sync.id, trashed: true });
+  assert.equal(calls.filter(call => call.options.method === 'PATCH').length, 1);
+  assert.ok(calls.every(call => call.options.method !== 'DELETE' && !call.url.includes('upload/')));
+  metadata = { ...metadata, trashed: true };
+  await account.trashIssue('test-task', sync);
+  assert.equal(calls.filter(call => call.options.method === 'PATCH').length, 1, 'already trashed does not mutate again');
+  metadata = { ...metadata, trashed: false, appProperties: { application: 'decontradictor-live', issueId: 'other-task' } };
+  await assert.rejects(account.trashIssue('test-task', sync), /課題IDが一致しません/);
+  metadata = { ...metadata, appProperties: { application: 'settings' } };
+  await assert.rejects(account.trashIssue('test-task', sync), /課題ファイルではありません/);
+  metadata = { ...metadata, appProperties: { application: 'decontradictor-live', issueId: 'test-task' }, modifiedTime: 'v2' };
+  await assert.rejects(account.trashIssue('test-task', sync), /更新されています/);
+  metadata = { ...metadata, modifiedTime: 'v1', capabilities: { canTrash: false } };
+  await assert.rejects(account.trashIssue('test-task', sync), /権限がありません/);
+  assert.equal(calls.filter(call => call.options.method === 'PATCH').length, 1);
+  await assert.rejects(account.trashIssue('test-task', { ...sync, profileId: 'other' }), /登録したGoogleアカウント/);
+});
+
+test('Drive deletion stops before PATCH if the account changes during metadata lookup', async () => {
+  const account = new LiveGoogleAccount(() => {}, () => {});
+  account.profile = { id: 'user' }; account.token = 'token'; account.expiresAt = Date.now() + 60000; account.hasDrive = true;
+  let patches = 0;
+  account.request = async (url, options = {}) => {
+    if (options.method === 'PATCH') patches++;
+    account.profile = { id: 'other' }; account.generation++;
+    return new Response(JSON.stringify({ id: 'session-id', mimeType: 'application/json', appProperties: { application: 'decontradictor-live', issueId: 'test-task' } }));
+  };
+  await assert.rejects(account.trashIssue('test-task', { id: 'session-id', profileId: 'user' }), /削除を中止/);
+  assert.equal(patches, 0);
+});
+
+test('Drive deletion supports a validated legacy session with a stable task ID', async () => {
+  const account = new LiveGoogleAccount(() => {}, () => {});
+  account.profile = { id: 'user' }; account.token = 'token'; account.expiresAt = Date.now() + 60000; account.hasDrive = true;
+  const id = 'legacy-file';
+  const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(id));
+  const issueId = 'drive-' + Array.from(new Uint8Array(digest), byte => byte.toString(16).padStart(2, '0')).join('').slice(0, 32);
+  const session = fixture(); delete session.issueId;
+  account.request = async (url, options = {}) => {
+    if (url.includes('alt=media')) return new Response(JSON.stringify(session));
+    if (options.method === 'PATCH') return new Response(JSON.stringify({ id, trashed: true }));
+    return new Response(JSON.stringify({ id, mimeType: 'application/json', modifiedTime: 'v1', appProperties: { application: 'decontradictor-live' } }));
+  };
+  assert.equal((await account.trashIssue(issueId, { id, profileId: 'user', modifiedTime: 'v1' })).trashed, true);
+  await assert.rejects(account.trashIssue('wrong-id', { id, profileId: 'user', modifiedTime: 'v1' }), /課題IDが一致しません/);
+});
+
+test('Drive issue list reads every metadata page without downloading contents', async () => {
+  const account = new LiveGoogleAccount(() => {}, () => {});
+  account.profile = { id: 'user' }; account.token = 'token'; account.expiresAt = Date.now() + 60000; account.hasDrive = true;
+  const calls = [];
+  account.request = async url => {
+    const params = new URL(url).searchParams;
+    calls.push(params);
+    assert.ok(params.get('fields').includes('appProperties'));
+    return new Response(JSON.stringify(params.get('pageToken')
+      ? { files: [{ id: 'b', name: 'DeContra-B.json' }] }
+      : { nextPageToken: 'next-page', files: [{ id: 'a', name: 'DeContra-A.json' }] }));
+  };
+  assert.deepEqual((await account.list()).map(file => file.id), ['a', 'b']);
+  assert.equal(calls.length, 2);
+  assert.equal(calls[1].get('pageToken'), 'next-page');
 });

@@ -777,6 +777,10 @@ input {
   background: #4b408d;
 }
 
+#live-open-settings-btn[aria-expanded="true"] {
+  background: #4b408d;
+}
+
 .live-brand-mark {
   flex: 0 0 4px;
   align-self: stretch;

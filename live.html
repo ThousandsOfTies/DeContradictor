@@ -18,7 +18,7 @@
           <h1 id="live-page-title">Gemini Live</h1>
           <p class="live-page-subtitle">音声と構造化データの確認</p>
         </div>
-        <button id="live-open-settings-btn" type="button" aria-controls="live-storage-settings">⚙ 保存・Google連携</button>
+        <button id="live-open-settings-btn" type="button" aria-controls="live-storage-settings" aria-expanded="false">⚙ 保存・Google連携</button>
       </div>
 
       <div id="live-status-block" aria-label="Live状態">
@@ -100,7 +100,7 @@
         <span id="live-drive-sync-state" role="status">Drive未同期</span>
         <span id="live-save-status" role="status">会話・図はこのブラウザに自動保存します。</span>
       </div>
-      <details id="live-storage-settings" open>
+      <details id="live-storage-settings">
         <summary>保存・読込 / Google連携（クリックで開閉）</summary>
         <div class="live-storage-fields">
           <div class="live-storage-row"><label for="live-session-title">会話名</label><input id="live-session-title" value="会話" maxlength="100"><button id="live-save-local" type="button">ブラウザに保存</button><button id="live-export" type="button">JSON出力</button><button id="live-import" type="button">JSON読込</button><input id="live-import-file" type="file" accept=".json,application/json" hidden></div>

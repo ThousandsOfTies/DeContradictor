@@ -29,10 +29,17 @@ const flowCanvas = new LiveFlowCanvas($('live-flow-svg'), {
 });
 const chat = new LiveChat($('live-chat-list'), scheduleDraft);
 
-$('live-open-settings-btn').addEventListener('click', () => {
-  const details = $('live-storage-settings');
-  details.open = true;
-  details.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+const settingsButton = $('live-open-settings-btn');
+const settingsDetails = $('live-storage-settings');
+function syncSettingsButton() {
+  settingsButton.setAttribute('aria-expanded', String(settingsDetails.open));
+  settingsButton.textContent = settingsDetails.open ? '× 設定を閉じる' : '⚙ 保存・Google連携';
+}
+settingsDetails.addEventListener('toggle', syncSettingsButton);
+settingsButton.addEventListener('click', () => {
+  settingsDetails.open = !settingsDetails.open;
+  syncSettingsButton();
+  if (settingsDetails.open) settingsDetails.scrollIntoView({ behavior: 'auto', block: 'start' });
 });
 
 function snapshot() {
